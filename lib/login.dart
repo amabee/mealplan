@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mealplan/home.dart';
+import 'package:mealplan/models/models.dart';
 import 'package:mealplan/signup.dart';
 import 'package:http/http.dart' as http;
 
@@ -148,6 +149,8 @@ class LoginPage extends StatelessWidget {
       } else {
         box.put("hasSession", true);
         box.put("username", username);
+        box.put("user_id", result["user_id"]);
+        User(username: box.get("username"));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
