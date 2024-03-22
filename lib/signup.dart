@@ -1,3 +1,6 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,7 +9,12 @@ import 'package:mealplan/login.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 
 class SignupPage extends StatelessWidget {
-  const SignupPage({super.key});
+  SignupPage({super.key});
+
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController confirmPassController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +52,7 @@ class SignupPage extends StatelessWidget {
                 Column(
                   children: <Widget>[
                     TextField(
+                      controller: usernameController,
                       decoration: InputDecoration(
                           hintText: "Username",
                           border: OutlineInputBorder(
@@ -55,6 +64,7 @@ class SignupPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: emailController,
                       decoration: InputDecoration(
                           hintText: "Email",
                           border: OutlineInputBorder(
@@ -66,6 +76,7 @@ class SignupPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: passwordController,
                       decoration: InputDecoration(
                         hintText: "Password",
                         border: OutlineInputBorder(
@@ -79,6 +90,7 @@ class SignupPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: confirmPassController,
                       decoration: InputDecoration(
                         hintText: "Confirm Password",
                         border: OutlineInputBorder(
@@ -95,15 +107,24 @@ class SignupPage extends StatelessWidget {
                 Container(
                     padding: const EdgeInsets.only(top: 3, left: 3),
                     child: ElevatedButton(
-                      onPressed: () {},
-                      child: const Text(
-                        "Sign up",
-                        style: TextStyle(fontSize: 20, color: Colors.white),
-                      ),
+                      onPressed: () {
+                        if (passwordController.text !=
+                            confirmPassController.text) {
+                          _onBasicAlertPressed(
+                              context, "Input Error", "Passwords do not match");
+                        } else {
+                          signup(context, usernameController.text,
+                              passwordController.text, emailController.text);
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.purple,
+                      ),
+                      child: const Text(
+                        "Sign up",
+                        style: TextStyle(fontSize: 20, color: Colors.white),
                       ),
                     )),
                 Row(
@@ -149,18 +170,30 @@ class SignupPage extends StatelessWidget {
       );
 
       var result = jsonDecode(response.body);
-      if (result['error'] != null) {
-        
+      print(result);
+      if (result is Map<String, dynamic> && result.containsKey('error')) {
+        _onBasicAlertPressed(context, "Something went wrong", result['error']);
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginPage(),
-          ),
-        );
+        _onBasicAlertPressed(context, "Success", "Registration Success");
+        Timer(const Duration(seconds: 3), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const LoginPage(),
+            ),
+          );
+        });
       }
     } catch (error) {
-      print(error);
+      _onBasicAlertPressed(context, "Runtime Error", "$error");
     }
+  }
+
+  _onBasicAlertPressed(context, String desc, String title) {
+    Alert(
+      context: context,
+      title: title,
+      desc: desc,
+    ).show();
   }
 }
