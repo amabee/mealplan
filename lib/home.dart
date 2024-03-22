@@ -197,14 +197,17 @@ class _HomePageState extends State<HomePage> {
                                   context, recipe_id, mealName);
                             },
                             icon: const Icon(Icons.edit)),
-                        
-                        IconButton(onPressed: () {}, icon: const Icon(Icons.add)),
+                        IconButton(
+                            onPressed: () {
+                              _showDatePicker(context, recipe_id);
+                            },
+                            icon: const Icon(Icons.add)),
                       ],
                     ),
                     title: Text(
                       mealName.toString(),
-                      style:
-                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,7 +528,7 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -570,6 +573,70 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (error) {
       print(error);
+    }
+  }
+
+  Future<void> _showDatePicker(BuildContext context, int mealId) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2025),
+    );
+    if (pickedDate != null) {
+      _showDatePickerAfter(context, pickedDate, mealId);
+    }
+  }
+
+  Future<void> _showDatePickerAfter(
+      BuildContext context, DateTime firstPickedDate, int mealId) async {
+    final DateTime? lastpickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2025),
+    );
+    if (lastpickedDate != null) {
+      createMealPlan(context, mealId, firstPickedDate, lastpickedDate);
+    }
+  }
+
+  void createMealPlan(
+      context, int recipeId, DateTime startDate, DateTime endDate) async {
+    var link = "http://192.168.1.11/mealplanner/api.php/";
+    final box = await Hive.openBox("myBox");
+    final Map<String, dynamic> json = {
+      "user_id": box.get("user_id"),
+      "recipe_id": recipeId,
+      "start_date": startDate.toIso8601String(),
+      "end_date": endDate.toIso8601String()
+    };
+
+    final Map<String, dynamic> queryParams = {
+      "operation": "addmealplan",
+      "json": jsonEncode(json)
+    };
+
+    http.Response response = await http.post(
+      Uri.parse(link),
+      body: queryParams,
+    );
+
+    try {
+      if (response.statusCode == 200) {
+        var res = jsonDecode(response.body);
+
+        if (res["error"] != null) {
+          print("Error: ${res["error"]}");
+        } else {
+          _onBasicAlertPressed(context, "$res", "Success!");
+        }
+      } else {
+        print(response.statusCode);
+      }
+    } catch (error) {
+      print(error);
+      _onBasicAlertPressed(context, "Success", "Success");
     }
   }
 }
