@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mealplan/login.dart';
+import 'package:mealplan/home.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  bool hasSession = await _checkSession();
+
+  runApp(MyApp(hasSession: hasSession));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasSession;
+
+  const MyApp({Key? key, required this.hasSession}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +26,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: hasSession ? HomePage() : LoginPage(),
     );
   }
+}
+
+Future<bool> _checkSession() async {
+  await Future.delayed(const Duration(seconds: 5));
+  final box = await Hive.openBox('myBox');
+  return box.get("hasSession", defaultValue: false);
 }

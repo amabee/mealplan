@@ -1,43 +1,46 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mealplan/home.dart';
 import 'package:mealplan/signup.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Container(
-          margin: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _header(context),
-              _inputField(context),
-              _forgotPassword(context),
-              _signup(context),
-            ],
-          ),
+    return Scaffold(
+      body: Container(
+        margin: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _header(),
+            _inputField(context),
+            _forgotPassword(),
+            _signup(context),
+          ],
         ),
       ),
     );
   }
 
-  _header(context) {
+  _header() {
     return const Column(
       children: [
         Text(
           "Welcome Back",
           style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
         ),
-        Text("Enter your credential to login"),
+        Text("Enter your credentials to login"),
       ],
     );
   }
 
-  _inputField(context) {
+  _inputField(BuildContext context) {
     TextEditingController usernameController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
     return Column(
@@ -71,7 +74,7 @@ class LoginPage extends StatelessWidget {
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
-            login(usernameController.text, passwordController.text);
+            login(context, usernameController.text, passwordController.text);
           },
           style: ElevatedButton.styleFrom(
             shape: const StadiumBorder(),
@@ -87,7 +90,7 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  _forgotPassword(context) {
+  _forgotPassword() {
     return TextButton(
       onPressed: () {},
       child: const Text(
@@ -97,27 +100,63 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  _signup(context) {
+  _signup(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Dont have an account? "),
+        const Text("Don't have an account? "),
         TextButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SignupPage()),
-              );
-            },
-            child: const Text(
-              "Sign Up",
-              style: TextStyle(color: Colors.purple),
-            ))
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SignupPage()),
+            );
+          },
+          child: const Text(
+            "Sign Up",
+            style: TextStyle(color: Colors.purple),
+          ),
+        )
       ],
     );
   }
 
-  void login(String username, String password) async{
-    
+  void login(BuildContext context, String username, String password) async {
+    var link = "http://192.168.1.11/mealplanner/api.php/";
+    final box = await Hive.openBox('myBox');
+    try {
+      final Map<String, dynamic> jsonData = {
+        "username": username,
+        "password": password,
+      };
+      final Map<String, dynamic> query = {
+        "operation": "login",
+        "json": jsonEncode(jsonData)
+      };
+
+      http.Response response =
+          await http.get(Uri.parse(link).replace(queryParameters: query));
+
+      var result = jsonDecode(response.body);
+      if (result['error'] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['error']),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        box.put("hasSession", true);
+        box.put("username", username);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(),
+          ),
+        );
+      }
+    } catch (error) {
+      print(error);
+    }
   }
 }

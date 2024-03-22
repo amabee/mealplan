@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:mealplan/login.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 class SignupPage extends StatelessWidget {
   const SignupPage({super.key});
@@ -20,7 +25,6 @@ class SignupPage extends StatelessWidget {
                 Column(
                   children: <Widget>[
                     const SizedBox(height: 60.0),
-
                     const Text(
                       "Sign up",
                       style: TextStyle(
@@ -49,9 +53,7 @@ class SignupPage extends StatelessWidget {
                           filled: true,
                           prefixIcon: const Icon(Icons.person)),
                     ),
-
                     const SizedBox(height: 20),
-
                     TextField(
                       decoration: InputDecoration(
                           hintText: "Email",
@@ -62,9 +64,7 @@ class SignupPage extends StatelessWidget {
                           filled: true,
                           prefixIcon: const Icon(Icons.email)),
                     ),
-
                     const SizedBox(height: 20),
-
                     TextField(
                       decoration: InputDecoration(
                         hintText: "Password",
@@ -77,9 +77,7 @@ class SignupPage extends StatelessWidget {
                       ),
                       obscureText: true,
                     ),
-
                     const SizedBox(height: 20),
-
                     TextField(
                       decoration: InputDecoration(
                         hintText: "Confirm Password",
@@ -96,10 +94,8 @@ class SignupPage extends StatelessWidget {
                 ),
                 Container(
                     padding: const EdgeInsets.only(top: 3, left: 3),
-
                     child: ElevatedButton(
-                      onPressed: () {
-                      },
+                      onPressed: () {},
                       child: const Text(
                         "Sign up",
                         style: TextStyle(fontSize: 20, color: Colors.white),
@@ -109,8 +105,7 @@ class SignupPage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.purple,
                       ),
-                    )
-                ),
+                    )),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -119,8 +114,10 @@ class SignupPage extends StatelessWidget {
                         onPressed: () {
                           Navigator.pop(context);
                         },
-                        child: const Text("Login", style: TextStyle(color: Colors.purple),)
-                    )
+                        child: const Text(
+                          "Login",
+                          style: TextStyle(color: Colors.purple),
+                        ))
                   ],
                 )
               ],
@@ -131,4 +128,39 @@ class SignupPage extends StatelessWidget {
     );
   }
 
+  void signup(BuildContext context, String username, String password,
+      String email) async {
+    var link = "http://192.168.1.11/mealplanner/api.php/";
+
+    try {
+      final Map<String, dynamic> jsonData = {
+        "username": username,
+        "password": password,
+        "email": email
+      };
+      final Map<String, dynamic> query = {
+        "operation": "signup",
+        "json": jsonEncode(jsonData)
+      };
+
+      http.Response response = await http.post(
+        Uri.parse(link),
+        body: query,
+      );
+
+      var result = jsonDecode(response.body);
+      if (result['error'] != null) {
+        
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginPage(),
+          ),
+        );
+      }
+    } catch (error) {
+      print(error);
+    }
+  }
 }
