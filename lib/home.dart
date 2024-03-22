@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:mealplan/schedulepage.dart';
+import 'package:mealplan/recipe_page.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -197,9 +197,7 @@ class _HomePageState extends State<HomePage> {
                                   context, recipe_id, mealName);
                             },
                             icon: const Icon(Icons.edit)),
-                        const SizedBox(
-                          width: 3,
-                        ),
+                        
                         IconButton(onPressed: () {}, icon: const Icon(Icons.add)),
                       ],
                     ),
