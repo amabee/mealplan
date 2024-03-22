@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:mealplan/schedulepage.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 
 class HomePage extends StatefulWidget {
@@ -159,25 +160,33 @@ class _HomePageState extends State<HomePage> {
             if (_mealList.isNotEmpty &&
                 index >= 0 &&
                 index < _mealList.length) {
+              var recipe_id = _mealList[index]['recipe_id'] ?? 0;
               var mealId = _mealList[index]['recipe_id'] ?? 'Unknown Recipe ID';
               var mealName = _mealList[index]['title'] ?? 'Unknown Product';
               var mealDesc =
                   _mealList[index]['description'] ?? 'Unknown Product';
               return GestureDetector(
                 onLongPress: () {
-                  print("DELETED");
+                  print("long pressed");
                 },
                 child: Card(
                   child: ListTile(
-                    onTap: (){
-                      print("hello");
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SchedulePage(
+                                    recipeId: recipe_id,
+                                    title: mealName,
+                                  )));
                     },
                     trailing: Wrap(
                       spacing: 12,
                       children: <Widget>[
                         GestureDetector(
                             onTap: () {
-                              showAddIngredientsDialog(context);
+                              showAddIngredientsDialog(
+                                  context, recipe_id, mealName);
                             },
                             child: Icon(Icons.edit)),
                         const SizedBox(
@@ -357,73 +366,145 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  showAddIngredientsDialog(BuildContext context) {
-    TextEditingController title = TextEditingController();
-    TextEditingController desc = TextEditingController();
-    TextEditingController instructions = TextEditingController();
-    TextEditingController prep_time = TextEditingController();
-    TextEditingController cook_time = TextEditingController();
-    TextEditingController servings = TextEditingController();
+  showAddIngredientsDialog(
+      BuildContext context, int recipeId, String mealName) {
+    List<TextEditingController> ingredientControllers = [];
+    List<TextEditingController> descControllers = [];
+  int passRecipeId = recipeId;
+    void addIngredientField() {
+      ingredientControllers.add(TextEditingController());
+      descControllers.add(TextEditingController());
+    }
+
+    void removeIngredientField(int index) {
+      ingredientControllers.removeAt(index);
+      descControllers.removeAt(index);
+    }
+
+    void saveIngredients() {
+      for (int i = 0; i < ingredientControllers.length; i++) {
+        String ingredientName = ingredientControllers[i].text;
+        String amount = descControllers[i].text;
+        saveIngredient(passRecipeId, ingredientName, amount);
+      }
+      Navigator.of(context).pop();
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Recipe'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                TextFormField(
-                  controller: title,
-                  decoration: InputDecoration(labelText: 'Recipe Name'),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Center(
+                child: Text(
+                  'Add Ingredient to $mealName',
+                  style: const TextStyle(fontSize: 17.0),
                 ),
-                TextFormField(
-                  controller: desc,
-                  decoration: InputDecoration(labelText: 'Description'),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    Text(
+                      'Recipe: $mealName',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: ingredientControllers.length,
+                      itemBuilder: (context, index) {
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: ingredientControllers[index],
+                                decoration:
+                                    InputDecoration(labelText: 'Ingredient'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                controller: descControllers[index],
+                                decoration:
+                                    InputDecoration(labelText: 'Amount'),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.remove),
+                              onPressed: () {
+                                setState(() {
+                                  removeIngredientField(index);
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          addIngredientField();
+                        });
+                      },
+                      child: Text('Add Ingredient'),
+                    ),
+                  ],
                 ),
-                TextFormField(
-                  controller: instructions,
-                  decoration: InputDecoration(labelText: 'Instructions'),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
                 ),
-                TextFormField(
-                  controller: prep_time,
-                  decoration: InputDecoration(labelText: 'Preparation Time'),
-                ),
-                TextFormField(
-                  controller: cook_time,
-                  decoration: InputDecoration(labelText: 'Cooking Time'),
-                ),
-                TextFormField(
-                  controller: servings,
-                  decoration: InputDecoration(labelText: 'Servings'),
-                  keyboardType: TextInputType.number,
+                ElevatedButton(
+                  onPressed: () {
+                    saveIngredients();
+                  },
+                  child: Text('Save'),
                 ),
               ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                addRecipe(
-                    title.text,
-                    desc.text,
-                    instructions.text,
-                    prep_time.text,
-                    cook_time.text,
-                    "s"
-                    );
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
+  }
+
+  void saveIngredient(
+      int recipeId, String ingredientName, String amount) async {
+    final Map<String, dynamic> json = {
+      "rid": recipeId,
+      "ing_name": ingredientName,
+      "amount": amount
+    };
+    final Map<String, dynamic> queryParams = {
+      "operation": "addingredients",
+      "json": jsonEncode(json)
+    };
+
+    var link = "http://192.168.1.11/mealplanner/api.php/";
+    http.Response response = await http.post(
+      Uri.parse(link),
+      body: queryParams,
+    );
+
+    try {
+      if (response.statusCode == 200) {
+        var res = jsonDecode(response.body);
+        if (res["error"] != null) {
+          print("Error: $res");
+        } else {
+          _onBasicAlertPressed(context, "Success", "Success");
+        }
+      }
+    } catch (error) {
+      print(error);
+    }
   }
 }
