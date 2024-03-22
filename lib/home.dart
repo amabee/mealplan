@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mealplan/schedulepage.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:file_picker/file_picker.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -156,7 +158,7 @@ class _HomePageState extends State<HomePage> {
         child: ListView.builder(
           itemCount: _mealList.length,
           itemBuilder: (context, index) {
-            print("Index: $index");
+            // print("Index: $index");
             if (_mealList.isNotEmpty &&
                 index >= 0 &&
                 index < _mealList.length) {
@@ -165,6 +167,8 @@ class _HomePageState extends State<HomePage> {
               var mealName = _mealList[index]['title'] ?? 'Unknown Product';
               var mealDesc =
                   _mealList[index]['description'] ?? 'Unknown Product';
+              var mealImage = _mealList[index]["image"] ?? "No image";
+              var instructions = _mealList[index]["instructions"] ?? "No Instructions available";
               return GestureDetector(
                 onLongPress: () {
                   print("long pressed");
@@ -175,9 +179,12 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => SchedulePage(
+                              builder: (context) => RecipePage(
                                     recipeId: recipe_id,
                                     title: mealName,
+                                    imageLink: "http://192.168.1.11/mealplanner/$mealImage",
+                                    desc: mealDesc,
+                                    instructions: instructions,
                                   )));
                     },
                     trailing: Wrap(
@@ -206,6 +213,7 @@ class _HomePageState extends State<HomePage> {
                         Text(
                           'Description: ${mealDesc.toString()}',
                           style: TextStyle(fontSize: 14),
+                          softWrap: true,
                         ),
                       ],
                     ),
@@ -267,6 +275,19 @@ class _HomePageState extends State<HomePage> {
     TextEditingController prep_time = TextEditingController();
     TextEditingController cook_time = TextEditingController();
     TextEditingController servings = TextEditingController();
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowCompression: true,
+      );
+
+      if (result != null) {
+        imageFile = File(result.files.single.path!);
+      }
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -300,6 +321,12 @@ class _HomePageState extends State<HomePage> {
                   decoration: InputDecoration(labelText: 'Servings'),
                   keyboardType: TextInputType.number,
                 ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await pickImage();
+                  },
+                  child: Text('Pick Image'),
+                ),
               ],
             ),
           ),
@@ -312,9 +339,24 @@ class _HomePageState extends State<HomePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                addRecipe(title.text, desc.text, instructions.text,
-                    prep_time.text, cook_time.text, servings.text);
-                Navigator.of(context).pop();
+                if (imageFile != null) {
+                  String imageName = imageFile!.path.split('/').last;
+                  addRecipe(
+                    title.text,
+                    desc.text,
+                    instructions.text,
+                    prep_time.text,
+                    cook_time.text,
+                    servings.text,
+                    imageName,
+                    imageFile,
+                  );
+                  Navigator.of(context).pop();
+                } else {
+                  // Handle the case where no image is picked
+                  _onBasicAlertPressed(
+                      context, "Error", "Please pick an image.");
+                }
               },
               child: Text('Add'),
             ),
@@ -324,45 +366,69 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void addRecipe(String title, String desc, String ins, String prep_time,
-      String cook_time, String servings) async {
+  void addRecipe(
+    String title,
+    String desc,
+    String ins,
+    String prep_time,
+    String cook_time,
+    String servings,
+    String imageName,
+    File? imageFile,
+  ) async {
     final box = await Hive.openBox("myBox");
 
-    final Map<String, dynamic> json = {
+    final Map<String, String> json = {
       "title": title,
       "desc": desc,
       "ins": ins,
       "prep_time": prep_time,
       "cook_time": cook_time,
       "serving": servings,
-      "author_id": box.get("user_id")
+      "author_id": box.get("user_id").toString(),
+      "image_name": imageName,
     };
 
-    final Map<String, dynamic> queryParams = {
+    final Map<String, String> queryParams = {
       "operation": "addrecipe",
-      "json": jsonEncode(json)
+      "json": jsonEncode(json),
     };
 
     var link = "http://192.168.1.11/mealplanner/api.php/";
 
-    http.Response response = await http.post(
-      Uri.parse(link),
-      body: queryParams,
-    );
+    var request = http.MultipartRequest('POST', Uri.parse(link));
+
+    if (imageFile != null) {
+      request.files.add(
+        http.MultipartFile(
+          'image',
+          imageFile.readAsBytes().asStream(),
+          imageFile.lengthSync(),
+          filename: imageName,
+        ),
+      );
+    }
+
+    request.fields.addAll(queryParams);
+
+    var response = await request.send();
 
     try {
       if (response.statusCode == 200) {
-        var res = jsonDecode(response.body);
+        var res = await response.stream.bytesToString();
 
-        if (res["error"] != null) {
-          _onBasicAlertPressed(context, "Fetch Error", res["error"]);
+        var decodedResponse = jsonDecode(res);
+
+        if (decodedResponse["error"] != null) {
+          _onBasicAlertPressed(
+              context, "Fetch Error", decodedResponse["error"]);
         } else {
-          _onBasicAlertPressed(context, "Success", response.body);
+          _onBasicAlertPressed(context, "Success", res);
         }
       }
     } catch (error) {
       print(error);
-      _onBasicAlertPressed(context, "Success", "Added Recipe");
+      _onBasicAlertPressed(context, "Success", "Successfully added recipe");
     }
   }
 
@@ -370,7 +436,7 @@ class _HomePageState extends State<HomePage> {
       BuildContext context, int recipeId, String mealName) {
     List<TextEditingController> ingredientControllers = [];
     List<TextEditingController> descControllers = [];
-  int passRecipeId = recipeId;
+    int passRecipeId = recipeId;
     void addIngredientField() {
       ingredientControllers.add(TextEditingController());
       descControllers.add(TextEditingController());
