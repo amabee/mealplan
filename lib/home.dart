@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mealplan/recipe_page.dart';
+import 'package:mealplan/scheduled_meal.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -67,6 +68,21 @@ class _HomePageState extends State<HomePage> {
           title: Text("$username's Dashboard"),
           centerTitle: true,
           backgroundColor: Colors.orange[100],
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 5.0),
+              child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ScheduledMealPage(
+                                  username: username,
+                                )));
+                  },
+                  icon: const Icon(Icons.calendar_month)),
+            )
+          ],
         ),
         body: SafeArea(
           child: Padding(
