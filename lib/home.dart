@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_unnecessary_containers, avoid_print
 
 import 'dart:convert';
 import 'dart:io';
@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-late String username = "";
+String username = "";
 
 class _HomePageState extends State<HomePage> {
   late List<dynamic> _mealList = [];
@@ -46,7 +46,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void didChangeDependencies() async {
-    // TODO: implement didChangeDependencies
     super.didChangeDependencies();
 
     List<dynamic>? myRecipeList = await getAllMeal();
@@ -77,7 +76,7 @@ class _HomePageState extends State<HomePage> {
               builder: (context, snapshot) {
                 switch (snapshot.connectionState) {
                   case ConnectionState.waiting:
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   case ConnectionState.done:
                     if (snapshot.hasError) {
                       return Text("Error: ${snapshot.error}");
@@ -107,7 +106,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.black.withOpacity(0.3),
                       spreadRadius: 2,
                       blurRadius: 5,
-                      offset: Offset(0, 3),
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -168,7 +167,8 @@ class _HomePageState extends State<HomePage> {
               var mealDesc =
                   _mealList[index]['description'] ?? 'Unknown Product';
               var mealImage = _mealList[index]["image"] ?? "No image";
-              var instructions = _mealList[index]["instructions"] ?? "No Instructions available";
+              var instructions = _mealList[index]["instructions"] ??
+                  "No Instructions available";
               return GestureDetector(
                 onLongPress: () {
                   print("long pressed");
@@ -182,7 +182,8 @@ class _HomePageState extends State<HomePage> {
                               builder: (context) => RecipePage(
                                     recipeId: recipe_id,
                                     title: mealName,
-                                    imageLink: "http://192.168.1.11/mealplanner/$mealImage",
+                                    imageLink:
+                                        "http://192.168.1.11/mealplanner/$mealImage",
                                     desc: mealDesc,
                                     instructions: instructions,
                                   )));
@@ -190,22 +191,22 @@ class _HomePageState extends State<HomePage> {
                     trailing: Wrap(
                       spacing: 12,
                       children: <Widget>[
-                        GestureDetector(
-                            onTap: () {
+                        IconButton(
+                            onPressed: () {
                               showAddIngredientsDialog(
                                   context, recipe_id, mealName);
                             },
-                            child: Icon(Icons.edit)),
+                            icon: const Icon(Icons.edit)),
                         const SizedBox(
                           width: 3,
                         ),
-                        Icon(Icons.add),
+                        IconButton(onPressed: () {}, icon: const Icon(Icons.add)),
                       ],
                     ),
                     title: Text(
                       mealName.toString(),
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +222,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
             } else {
-              return CircularProgressIndicator();
+              return const CircularProgressIndicator();
             }
           },
         ),
