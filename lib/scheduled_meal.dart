@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:mealplan/recipe_page.dart';
 
 class ScheduledMealPage extends StatefulWidget {
   final String username;
@@ -67,21 +68,20 @@ class _ScheduledMealPageState extends State<ScheduledMealPage> {
   }
 
   Map<String, List<dynamic>> groupMealsByDate(List<dynamic> meals) {
-  Map<String, List<dynamic>> groupedMeals = {};
-  for (var meal in meals) {
-    String? startDate = meal['start_date'];
-    if (startDate != null) {
-      String endDate = meal['end_date'];
-      String formattedStartDate = _formatDate(startDate);
-      if (!groupedMeals.containsKey(formattedStartDate)) {
-        groupedMeals[formattedStartDate] = [];
+    Map<String, List<dynamic>> groupedMeals = {};
+    for (var meal in meals) {
+      String? startDate = meal['start_date'];
+      if (startDate != null) {
+        String endDate = meal['end_date'];
+        String formattedStartDate = _formatDate(startDate);
+        if (!groupedMeals.containsKey(formattedStartDate)) {
+          groupedMeals[formattedStartDate] = [];
+        }
+        groupedMeals[formattedStartDate]!.add(meal);
       }
-      groupedMeals[formattedStartDate]!.add(meal);
     }
+    return groupedMeals;
   }
-  return groupedMeals;
-}
-
 
   String _formatDate(String? date) {
     if (date != null) {
@@ -147,9 +147,19 @@ class _ScheduledMealPageState extends State<ScheduledMealPage> {
   }
 
   Widget _buildMealBox(dynamic meal) {
+    var link = "http://192.168.1.11/mealplanner/${meal['image']}";
     return GestureDetector(
       onTap: () {
-        // Handle meal selection
+        // print("nice");
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RecipePage(
+                    recipeId: meal['recipe_id'],
+                    title: meal['title'],
+                    imageLink: link,
+                    desc: meal['description'],
+                    instructions: meal['instructions'])));
       },
       child: Center(
         child: Container(
