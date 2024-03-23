@@ -187,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                   "No Instructions available";
               return GestureDetector(
                 onLongPress: () {
-                  print("long pressed");
+                  removeRecipe(recipe_id);
                 },
                 child: Card(
                   child: ListTile(
@@ -653,6 +653,40 @@ class _HomePageState extends State<HomePage> {
     } catch (error) {
       print(error);
       _onBasicAlertPressed(context, "Success", "Success");
+    }
+  }
+
+  void removeRecipe(int rid) async {
+    var link = "http://192.168.1.11/mealplanner/api.php";
+    final box = await Hive.openBox("myBox");
+
+    final Map<String, dynamic> json = {
+      "recipe_id": rid,
+      "user_id": box.get("user_id"),
+    };
+
+    final Map<String, dynamic> queryParams = {
+      "operation": "removerecipe",
+      "json": jsonEncode(json)
+    };
+
+    http.Response response = await http.post(
+      Uri.parse(link),
+      body: queryParams,
+    );
+
+    try {
+      if (response.statusCode == 200) {
+        var res = jsonDecode(response.body);
+        if (res['error'] != null) {
+          _onBasicAlertPressed(context, res, "Proccess Error");
+        } else {
+          _onBasicAlertPressed(context, res, "Success");
+        }
+      }
+    } catch (error) {
+      print("Runtime Error: $error");
+      _onBasicAlertPressed(context, response.body, "Success"); 
     }
   }
 }
