@@ -150,7 +150,6 @@ class _ScheduledMealPageState extends State<ScheduledMealPage> {
     var link = "http://192.168.1.11/mealplanner/${meal['image']}";
     return GestureDetector(
       onTap: () {
-        // print("nice");
         Navigator.push(
             context,
             MaterialPageRoute(
